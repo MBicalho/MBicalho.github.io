@@ -1,0 +1,268 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+
+    <script type="text/javascript" src="./pe.js"></script>
+    <script type="text/javascript" src="./corpo.js"></script>
+    <script type="text/javascript" src="./cabeca.js"></script>
+    <script type="text/javascript" src="./asa.js"></script>
+    <script type="text/javascript" src="./boca.js"></script>
+    <script type="text/javascript" src="./olho.js"></script>
+    <script type="text/javascript" src="js/gl-matrix-2.4.0.min.js"></script>
+    <script type="text/javascript" src="js/jquery-3.2.1.min.js"></script>
+    <script type="text/javascript" src="js/webgl-utils.js"></script>
+    <script type="text/javascript">
+
+        var mMatrix = mat4.create();
+        var vMatrix = mat4.create();
+        var pMatrix = mat4.create();
+
+        var mMatrixPilha = [];
+
+        var triangulo1vertex;
+        var triangulo2vertex;
+        var triangulo3vertex;
+        var TrianguloCor;
+
+        var quadrado1vertex;
+        var quadrado2vertex;
+        var retangulovertex;
+        var QuadradoCor;
+
+        var circulo1vertex;
+        var CirculoCor;
+
+        // Iniciar o ambiente quando a página for carregada
+        $(function () {
+            iniciaWebGL();
+        });
+
+
+
+        function iniciaWebGL() {
+            var canvas = $('#canvas-webgl')[0];
+
+            iniciarGL(canvas);
+            iniciarShaders();
+            iniciarBuffers();
+            iniciarAmbiente();
+            desenharCena();
+
+            tick();
+
+        }
+
+        function iniciarGL(canvas) {
+            try {
+                gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+                gl.viewportWidth = canvas.width;
+                gl.viewportHeight = canvas.height;
+            }
+            catch (e) {
+                if (!gl)
+                    alert("Não pode inicializar WebGL, desculpe");
+            }
+        }
+
+        var shaderProgram;
+        function iniciarShaders() {
+
+            var vertexShader = getShader(gl, "#shader-vs");
+            var fragmentShader = getShader(gl, "#shader-fs");
+
+            shaderProgram = gl.createProgram();                 // associa os shaders
+            gl.attachShader(shaderProgram, vertexShader);
+            gl.attachShader(shaderProgram, fragmentShader);
+            gl.linkProgram(shaderProgram);
+
+            if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
+                alert("Não pode inicializar shaders");
+            }
+
+            gl.useProgram(shaderProgram);
+
+            //referencia os attributes e uniforms dos shaders 
+            shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+            gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
+
+            shaderProgram.vertexColorAttribute = gl.getAttribLocation(shaderProgram, "aVertexColor");
+            gl.enableVertexAttribArray(shaderProgram.vertexColorAttribute);
+
+
+            shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
+            shaderProgram.vMatrixUniform = gl.getUniformLocation(shaderProgram, "uVMatrix");
+            shaderProgram.mMatrixUniform = gl.getUniformLocation(shaderProgram, "uMMatrix");
+
+        }
+
+        //compila os shaders, captura a tag script que contenha o script do shader
+        function getShader(gl, id) {
+
+            var shaderScript = $(id)[0];
+            if (!shaderScript) {
+                return null;
+            }
+
+            var str = "";
+            var k = shaderScript.firstChild;
+            while (k) {
+                if (k.nodeType == 3)
+                    str += k.textContent;
+                k = k.nextSibling;
+            }
+
+            //cria o objeto do shader dentro do contexto
+            var shader;
+            if (shaderScript.type == "x-shader/x-fragment") {
+                shader = gl.createShader(gl.FRAGMENT_SHADER);
+            } else if (shaderScript.type == "x-shader/x-vertex") {
+                shader = gl.createShader(gl.VERTEX_SHADER);
+            } else {
+                return null;
+            }
+
+            gl.shaderSource(shader, str);
+            gl.compileShader(shader);
+
+            if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+                alert(gl.getShaderInfoLog(shader));
+                return null;
+            }
+
+            return shader;
+
+        }
+
+        //trabalham como um pilha, retirando e colocando matrizes
+        //copia a matriz atual (mMatrix) e guarda na pilha
+        function mPushMatrix() {
+            var copy = mat4.clone(mMatrix);
+            mMatrixPilha.push(copy);
+        }
+        //devlve a matriz guardada no topo da pilha para a mMatrix
+        function mPopMatrix() {
+            if (mMatrixPilha.length == 0) {
+                throw "inválido popMatrix!";
+            }
+            mMatrix = mMatrixPilha.pop();
+        }
+
+        function iniciarBuffers() {
+
+            triangulo1();
+            triangulo2();
+            triangulo3();
+
+            //quadrado1();
+            //quadrado2();
+            retangulo();
+            retangulo1();
+
+            circulo();
+
+
+
+        }
+
+        function degToRad(graus) {
+            return graus * Math.PI / 180;
+        }
+
+        function tick() {
+            requestAnimFrame(tick);
+            desenharCena();
+
+            animarCorpo();
+            animarAsa();
+            //animarPeEsquerdo();
+            animarPeDireito();
+            //animarOlho();
+        }
+
+        function iniciarAmbiente() {
+
+            // limpa tela
+            gl.clearColor(0.0, 0.0, 0.0, 1.0);
+
+            gl.enable(gl.DEPTH_TEST);
+
+        }
+
+        function desenharCena() {
+
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            mat4.perspective(
+
+                pMatrix, 45,
+                gl.viewportWidth / gl.viewportHeight,
+                0.1, 100.0
+
+            );
+
+            mat4.identity(mMatrix);
+            mat4.identity(vMatrix);
+
+            desenharCorpo()
+            desenharAsa()
+            desenharCabeca()
+            desenharPeDireito()
+            desenharPeEsquerdo()
+            //desenharOlho()
+            //desenharBoca()
+        }
+
+
+        function setMatrixUniforms() {
+
+            gl.uniformMatrix4fv(shaderProgram.pMatrixUniform, false, pMatrix);
+            gl.uniformMatrix4fv(shaderProgram.vMatrixUniform, false, vMatrix);
+            gl.uniformMatrix4fv(shaderProgram.mMatrixUniform, false, mMatrix);
+
+        }
+
+    </script>
+
+    <script id="shader-vs" type="x-shader/x-vertex">
+
+        attribute vec3 aVertexPosition;   
+        attribute vec4 aVertexColor;
+
+        uniform mat4 uMMatrix;
+        uniform mat4 uVMatrix;
+        uniform mat4 uPMatrix;
+
+        varying vec4 vColor;
+        
+        void main(void){
+
+            gl_Position = uPMatrix * uVMatrix * uMMatrix * vec4(aVertexPosition, 1.0);
+
+            vColor = aVertexColor;
+
+        }
+    </script>
+
+    <script id="shader-fs" type="x-shader/x-fragment">
+        precision mediump float;    
+        
+        varying vec4 vColor;
+
+        void main(void){
+
+            //gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+            gl_FragColor = vColor;
+
+        }
+    </script>
+
+</head>
+
+<body>
+
+    <canvas id="canvas-webgl" width="500px" height="500px" style="border:none">
+    </canvas>
+</body>
+
+</html>
