@@ -62,7 +62,7 @@ function desenharAsa() {
 
     // Desenhando a asa do anjo
     var translation = vec3.create();
-    vec3.set(translation, 1.3, 0.6, -3);
+    vec3.set(translation, 1.3 + deslocarXasa, 0.6 + deslocarYasa, -3);
 
     mPushMatrix();
     mat4.translate(mMatrix, mMatrix, translation);

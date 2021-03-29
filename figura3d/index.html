@@ -49,6 +49,10 @@
             iniciarAmbiente();
             desenharCena();
 
+            
+            document.onkeydown = eventoPressionaTecla;
+            document.onkeyup = eventoSoltaTecla;
+
             tick();
 
         }
@@ -171,6 +175,7 @@
 
         function tick() {
             requestAnimFrame(tick);
+            teclado();
             desenharCena();
 
             animarCorpo();
@@ -178,6 +183,7 @@
             //animarPeEsquerdo();
             animarPeDireito();
             //animarOlho();
+            
         }
 
         function iniciarAmbiente() {
@@ -221,6 +227,66 @@
             gl.uniformMatrix4fv(shaderProgram.mMatrixUniform, false, mMatrix);
 
         }
+
+    var yVelo = 0;
+    var xVelo = 0;
+
+    
+    deslocarXasa = 0;
+    deslocarYasa = 0;
+    function teclado() {
+      if (teclasPressionadas[87]) { // W
+        deslocarYasa += 0.01;
+      }
+
+      if (teclasPressionadas[83]) { // S
+        deslocarYasa -= 0.01;
+      }
+
+      if (teclasPressionadas[65]) { // A
+        deslocarXasa -= 0.01;
+      }
+
+      if (teclasPressionadas[68]) { // D
+        deslocarXasa += 0.01;
+      }
+
+      if (teclasPressionadas[33]) {
+        // Page Up
+        z -= 0.05;
+      }
+      if (teclasPressionadas[34]) {
+        // Page Down
+        z += 0.05;
+      }
+      if (teclasPressionadas[37]) {
+        // Esquerda
+        yVelo -= 1;
+      }
+      if (teclasPressionadas[39]) {
+        // Direita
+        yVelo += 1;
+      }
+      if (teclasPressionadas[38]) {
+        // Cima
+        xVelo -= 1;
+      }
+      if (teclasPressionadas[40]) {
+        // Baixo
+        xVelo += 1;
+      }
+    }
+
+
+    
+    var teclasPressionadas = [];
+    function eventoPressionaTecla(e) {
+      teclasPressionadas[e.keyCode] = true;
+    }
+
+    function eventoSoltaTecla(e) {
+      teclasPressionadas[e.keyCode] = false;
+    }
 
     </script>
 
